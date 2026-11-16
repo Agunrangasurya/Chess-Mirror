@@ -242,15 +242,6 @@ th { color: var(--text-secondary); font-weight: 700; }
 .badge-excellent { color: #4ade80; border-color: #4ade80; }
 .badge-book { color: #d97706; border-color: #d97706; }
 .badge-miss { color: #f87171; border-color: #f87171; }
-.move-quality-square-badge { position:absolute; z-index:7; top:3px; right:3px; display:grid; place-items:center; width:36px; height:36px; padding:0; border:2px solid #fff; border-radius:50%; color:#fff; background:#334155; box-shadow:0 2px 9px rgba(0,0,0,.75); font-size:1.3rem; line-height:1; font-weight:900; pointer-events:none; text-shadow:0 1px 2px rgba(0,0,0,.65); }
-.move-quality-square-badge.badge-brilliant { background:#0891b2; }
-.move-quality-square-badge.badge-great { background:#2563eb; }
-.move-quality-square-badge.badge-best, .move-quality-square-badge.badge-excellent { background:#15803d; }
-.move-quality-square-badge.badge-good { background:#0284c7; }
-.move-quality-square-badge.badge-book { background:#a16207; }
-.move-quality-square-badge.badge-inaccuracy { background:#ca8a04; }
-.move-quality-square-badge.badge-mistake { background:#ea580c; }
-.move-quality-square-badge.badge-miss, .move-quality-square-badge.badge-blunder { background:#dc2626; }
 .move-quality-cell { display:inline-flex; align-items:center; gap:4px; margin-left:5px; vertical-align:middle; }
 
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.76); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 50; }
@@ -2703,18 +2694,6 @@ iframe, embed, object, video { display: block; }
     badge.textContent = `${mark[1]} ${quality.classification}`;
     const detail = document.createElement('span'); detail.textContent = ` ${quality.mover === 'w' ? 'White' : 'Black'} · ${quality.san || ''} — ${quality.explanation || 'Engine estimate.'} Engine estimate at depth ${quality.depth || '—'}; labels can change with a deeper search.`;
     panel.append(badge, detail);
-    const playedMoves = state.mirror.chess.history({ verbose: true }), qualityByDestination = new Map();
-    playedMoves.forEach((move, index) => { const moveQuality = state.mirror.moveQuality[index]; if (moveQuality) qualityByDestination.set(move.to, { move, quality: moveQuality }); });
-    qualityByDestination.forEach(({ move, quality: squareQuality }, squareName) => {
-      const destination = $('playBoardWrap').querySelector(`.sq[data-square="${squareName}"]`);
-      if (!destination) return;
-      const badgeOnSquare = document.createElement('span');
-      badgeOnSquare.className = `move-quality-square-badge badge-${squareQuality.classification.toLowerCase()}`;
-      badgeOnSquare.textContent = squareQuality.icon || (MOVE_QUALITY_MARKS[squareQuality.classification] || mark)[1];
-      badgeOnSquare.title = `${squareQuality.mover === 'w' ? 'White' : 'Black'} ${squareQuality.classification}: ${squareQuality.san || move.san}`;
-      badgeOnSquare.setAttribute('aria-label', `${squareQuality.mover === 'w' ? 'White' : 'Black'} ${squareQuality.classification} move ${squareQuality.san || move.san}`);
-      destination.appendChild(badgeOnSquare);
-    });
   }
   function resetMirrorMoveReview() {
     state.mirror.moveQuality = []; state.mirror.lastMoveQuality = null; state.mirror.lastAnalysis = null;
