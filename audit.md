@@ -1,0 +1,30 @@
+# Build and verification audit
+
+Date: 2026-11-16
+
+## Completed and verified
+
+- Inspected the complete uploaded 220,270-byte, 2,958-line HTML source. The unmodified file is retained at `docs/grandmaster_companion_pro.original.html`.
+- Bundled Stockfish 19.0.1 full single-threaded WASM worker and binary from the published `stockfish` npm package. The tarball SHA-512 matches the registry integrity metadata. The NNUE network is compiled into this WASM build. GPL-3.0 license and notices are included. The full WASM is about 95 MiB (about 100 MB).
+- The app prefers Stockfish. The original custom tactical engine remains as an explicitly labelled fallback; I repaired its previously missing rules-engine dependency and verified its startup/search.
+- Bounded search time, depth, MultiPV and hash. Search requests are serialized, newer requests stop older ones, stop has a five-second worker-restart limit, and a recommendation is displayed only if the analyzed FEN still matches the current position.
+- Enabled digital auto-play by default: after a legal engine recommendation, the move is automatically applied to the app board. A visible checkbox can turn auto-play off for physical-board practice; in manual mode, the recommendation must be explicitly confirmed after the user physically plays it. User-side moves are blocked from text/board input unless they come through auto-play, explicit confirmation, or redo. The selected opponent colour controls whose turn is entered and which colour receives recommendations. Side changes are blocked after play begins. Undo/correction restores recorded clock values; redo is explicit.
+- Kept Bullet, Blitz and Rapid only, with editable defaults of 1+0, 3+2 and 10+5. Saved, completed games update a local Elo-style estimate against a fixed 1200 reference; guest results are not persisted.
+- Added a physical-practice/competition-rules warning, install manifest, SVG/192px/512px icons and service worker. The shell is precached; the large engine files are cached after a controlled visit. Hosting and storage limits are documented.
+- Hardened backup import with file-size/schema/profile limits and validation; invalid backup data is rejected before profiles are listed. Profile persistence errors now surface instead of being silently discarded. Added a clear secure-context guard for PIN hashing so insecure hostnames such as `0.0.0.0` show the correct localhost/HTTPS instruction instead of a raw Web Crypto error.
+- Automated checks passed through the included `tests/chess.test.cjs`: application script syntax; perft start position (20, 400, 8,902), Kiwipete (48, 2,039), and rook endgame (14, 191); all 14 puzzle solution lines; all opening main/variation lines; all historical PGNs; manifest/icon existence; engine asset size; Mirror Play auto-play/manual-mode safeguards, and the secure-context guard.
+- Browser smoke checks on localhost (before the final profile/clock/request-queue/auto-play UI edits): the app loaded with no console errors and identified `Stockfish 19 WASM`; Stockfish returned `bestmove e2e4` at depth 8. The fallback returned `bestmove g1f3` at depth 3. The final packaged source passed the syntax and data tests above; the UI was not re-run after those last edits.
+
+## Still not fully verified
+
+- Game Review now evaluates the best move before each played move and the played result afterward, with Quick/Thorough/Deep search budgets. It includes heuristic Brilliant/Great labels and reports draw causes detectable from the final position. These are app estimates and cannot reproduce Chess.com's proprietary labels; a bare draw result does not encode an agreement, claim, or event/clock cause. Review-specific regression checks passed for Brilliant gating, repetition/stalemate/insufficient-material explanation, and generic draw results.
+- Loading a new PGN cancels the active review search and restores the review control. Browser-level cancellation and full Stockfish review UX were not exercised after this change.
+- The browser launch showed the previous server root (`outputs/Grandmaster-Companion-Pro`) had been removed after packaging; the server log confirmed HTTP 404 for both engine worker scripts and the service worker. The app therefore fell back because its assets were unavailable, not because the bundled Stockfish files were invalid. The local server now uses the persistent project folder containing all assets, and the service-worker cache version is bumped to v2.
+- Mirror Play now has an enabled-by-default practical win-try option. It checks the top three Stockfish lines and chooses the strongest searched non-drawing principal variation when the top line reaches a draw. This can accept a worse engine evaluation; if all three lines draw in their PVs, it keeps the engine's top line and reports that search limitation. It cannot guarantee a win.
+
+- PWA offline installation and engine-cache persistence were not tested after clearing the browser cache or across devices. Browsers may evict or reject the roughly 95 MiB (about 100 MB) engine file.
+- Mobile, screen-reader, keyboard-only, and cross-browser accessibility were not fully audited. Nor were all profile/account, import/export, and quota-exhaustion flows manually exercised.
+- Clock behavior was improved for move increments and undo snapshots, but not validated through long time-control sessions, background-tab throttling, or device sleep.
+- Chess rules were checked against representative perft positions and every bundled record, not exhaustively against a second independent library or all edge-case FEN/PGN inputs.
+- The app’s local profile PIN is a convenience gate, not account security. Profile data is not encrypted at rest. Local rating values are estimates, not official ratings.
+- No benchmark establishes engine strength on every device. Single-threaded Stockfish avoids cross-origin-isolation headers but gives up parallel search. The project makes no guarantee of winning against any player and is not a claim of “10/10 perfection.”

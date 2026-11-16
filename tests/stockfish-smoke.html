@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stockfish WASM smoke check</title>
+<style>body{font:16px system-ui;max-width:46rem;margin:3rem auto;padding:0 1rem;background:#0b0f17;color:#f1f5f9}pre{white-space:pre-wrap;background:#131a26;padding:1rem;border-radius:.5rem}.ok{color:#22c55e}.bad{color:#ef4444}</style>
+<h1>Stockfish WASM smoke check</h1><p>Starts the bundled UCI worker, waits for WASM initialization, then searches the starting position.</p><pre id="result">Starting worker…</pre>
+<script>
+const out=document.getElementById('result');
+const lines=[]; let phase='uci'; let engineName=''; let done=false;
+const worker=new Worker('../vendor/stockfish/stockfish-19-single.js');
+const timer=setTimeout(()=>finish(false,'Timed out during '+phase),45000);
+function finish(ok,message){if(done)return;done=true;clearTimeout(timer);worker.terminate();out.className=ok?'ok':'bad';out.textContent=(ok?'PASS':'FAIL')+'\n'+lines.join('\n')+'\n'+message;}
+worker.onerror=e=>finish(false,'Worker error: '+e.message);
+worker.onmessage=e=>{
+ const line=String(e.data||'');
+ if(line.startsWith('id name ')){engineName=line.slice(8);lines.push(line);}
+ if(phase==='uci'&&line==='uciok'){phase='ready';worker.postMessage('isready');}
+ else if(phase==='ready'&&line==='readyok'){phase='search';worker.postMessage('position startpos');worker.postMessage('go depth 8');}
+ else if(phase==='search'&&line.startsWith('info depth')) lines.push(line);
+ else if(phase==='search'&&line.startsWith('bestmove ')){const move=line.split(/\s+/)[1];finish(/^([a-h][1-8])([a-h][1-8])[qrbn]?$/.test(move)&&engineName.toLowerCase().includes('stockfish'),`Best move: ${move}; engine: ${engineName}`);}
+};
+worker.postMessage('uci');
+</script>
